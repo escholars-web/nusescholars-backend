@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from app.api.admin import endpoints
+from app.api.admin import profiles
 
-app = FastAPI(title="My FastAPI Project")
+app = FastAPI(title="NUS E-Scholars Admin Backend")
 
-app.include_router(endpoints.router, prefix="/api/admin")
+app.include_router(profiles.router)
