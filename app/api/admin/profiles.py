@@ -10,6 +10,7 @@ router = APIRouter(prefix="/admin/profiles", tags=["admin profiles"])
 
 @router.post("/upload-csv", response_model=UploadCSVResponse)
 async def upload_csv(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    print("File Content-Type:", file.content_type)
     if file.content_type != "text/csv":
         raise HTTPException(status_code=400, detail="Only CSV files allowed")
 
@@ -21,6 +22,7 @@ async def upload_csv(background_tasks: BackgroundTasks, file: UploadFile = File(
 
     return UploadCSVResponse(uploadId=upload_id, status="processing", submittedAt=submitted_at)
 
+# TODO: we need to call this immediately after uploading the csv to retrieve the flagged profiles; should it be nested?
 @router.get("/flagged", response_model=List[FlaggedProfile])
 async def get_flagged_profiles():
     response = supabase.table("flagged_profiles").select("*").execute()
