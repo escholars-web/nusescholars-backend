@@ -3,22 +3,43 @@ from datetime import datetime
 import uuid
 from typing import List
 from app.models.profile import UploadCSVResponse, FlaggedProfile, EditFlaggedProfileRequest, EditFlaggedProfileResponse
-from app.services.profile_service import process_csv
+from app.services.profile_service import process_profiles_file
 from app.database.supabase_client import supabase
 
 router = APIRouter(prefix="/admin/profiles", tags=["admin profiles"])
 
-@router.post("/upload-csv", response_model=UploadCSVResponse)
-async def upload_csv(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+# @router.post("/upload-csv", response_model=UploadCSVResponse)
+# async def upload_csv(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+#     print("File Content-Type:", file.content_type)
+#     if file.content_type != "text/csv":
+#         raise HTTPException(status_code=400, detail="Only CSV files allowed")
+
+#     file_bytes = await file.read()
+#     upload_id = str(uuid.uuid4())
+#     submitted_at = datetime.utcnow()
+
+#     background_tasks.add_task(process_csv, file_bytes, upload_id)
+
+#     return UploadCSVResponse(uploadId=upload_id, status="processing", submittedAt=submitted_at)
+
+@router.post("/upload-file", response_model=UploadCSVResponse)
+async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     print("File Content-Type:", file.content_type)
-    if file.content_type != "text/csv":
-        raise HTTPException(status_code=400, detail="Only CSV files allowed")
+    allowed_types = [
+        "text/csv",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ]
+
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Only CSV or XLSX files allowed")
 
     file_bytes = await file.read()
     upload_id = str(uuid.uuid4())
     submitted_at = datetime.utcnow()
 
-    background_tasks.add_task(process_csv, file_bytes, upload_id)
+    # Pass the filename to processing function
+    background_tasks.add_task(process_profiles_file, file_bytes, file.filename, upload_id)
 
     return UploadCSVResponse(uploadId=upload_id, status="processing", submittedAt=submitted_at)
 
@@ -48,5 +69,7 @@ async def edit_flagged_profile(profileId: str, payload: EditFlaggedProfileReques
 
     if response.error or response.count == 0:
         raise HTTPException(status_code=404, detail="Flagged profile not found")
+    
+    # TODO: merge the edited flagged profiles back to the profiles table
 
     return EditFlaggedProfileResponse(status="success", profileId=profileId)
