@@ -89,7 +89,7 @@ def split_bullet_points(text: str) -> List[str]:
         # Remove any existing bullet point markers
         line = re.sub(r'^[-•●·∙⚫⬤○◯☉*-;,.]\s*', '', line.strip())
         if line:
-            cleaned_points.append(f"* {line}")
+            cleaned_points.append(f"{line}")
     
     return cleaned_points
 
@@ -201,17 +201,6 @@ async def process_profiles_file(file_bytes: bytes, filename: str, upload_id: str
     
     rows = read_profiles_file(file_bytes, filename)
     
-
-    # # Deduplicate by full_name, only upload one row per profile to staging, preferring the latest and uploading the row with issues if present.
-    # deduped = {}
-    # for row in rows:
-    #     mapped_row = translate_row_keys(row)
-    #     mapped_row = clean_row_fields(mapped_row)
-    #     full_name = mapped_row.get("full_name")
-    #     if not full_name:
-    #         continue
-    #     deduped[full_name.title()] = mapped_row
-    
     deduped = {}
     duplicate_rows = []
     for i, row in enumerate(rows):
@@ -252,7 +241,5 @@ async def process_profiles_file(file_bytes: bytes, filename: str, upload_id: str
         print(f"{len(duplicate_rows)} duplicate rows dropped (kept the latest for each name):")
         for entry in duplicate_rows:
             print(f"Row {entry['row_index']} is a duplicate for full_name '{entry['duplicate_full_name']}' (original kept at row {entry['kept_row_index']})")
-            # Optionally print row data
-            # print(entry['duplicate_row_data'])
     else:
         print("No duplicate rows found.")
