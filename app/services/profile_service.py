@@ -58,6 +58,7 @@ COLUMN_NAME_MAP = {
 }
 
 # Match columns exactly
+# TODO: remove overseas_experience
 PROFILES_COLUMNS = set([
     "full_name", "bachelor_course", "masters_course", "ddp_or_minor",
     "intake_batch", "overseas_experience", "self_writeup", "picture_url",

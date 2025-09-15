@@ -32,11 +32,33 @@ def insert_profiles_from_csv():
             supabase.table(PROFILES_TABLE).upsert(batch).execute()
     print(f"Inserted {len(rows)} rows into 'profiles' table.")
 
-def remove_bullets(text):
+def split_bullet_points(text):
+    """
+    Split text into bullet points or lines.
+    """
     if not text:
-        return ""
-    # Remove common bullet characters and whitespace after them at the start of lines
-    return re.sub(r'^[\u2022\-\*]+\s*', '', text, flags=re.MULTILINE)
+        return []
+    # Split by newline, strip each line, ignore empty
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
+    # If only one line, try splitting by other separators
+    if len(lines) == 1:
+        single_line = lines[0]
+        for sep in ['•', '*', '-', ';', ',', '.', '·']:
+            if sep in single_line:
+                lines = [segment.strip() for segment in single_line.split(sep) if segment.strip()]
+                break
+    # Remove existing bullet characters at start
+    cleaned = [re.sub(r'^[\u2022\-\*\·]+\s*', '', line) for line in lines]
+    return cleaned
+
+def capitalise_first_word(points):
+    """
+    Capitalise only the first letter of each point.
+    """
+    def cap_first(s):
+        s = s.strip()
+        return s[:1].upper() + s[1:] if s else s
+    return [cap_first(point) for point in points]
 
 def extract_ay(admit_year):
     if not admit_year:
@@ -61,28 +83,34 @@ def main():
                 row["overseas_experience"] = entry.get("overseas_experience", "")
                 row["self_writeup"] = entry.get("self_writeup") or entry.get("writeup", "")
                 row["picture_url"] = entry.get("picture_url", "")
+                
+                # Notable Achievements
                 notable = entry.get("notable_achievements", "")
                 if isinstance(notable, list):
-                    notable = "\n".join(notable)
-                notable = remove_bullets(notable)
-                row["notable_achievements"] = notable
+                    points = [str(x) for x in notable]
+                else:
+                    points = split_bullet_points(notable)
+                points = capitalise_first_word(points)
+                row["notable_achievements"] = json.dumps(points, ensure_ascii=False)
 
+                # Hobbies
                 hobbies = entry.get("interests_hobbies", "")
                 if isinstance(hobbies, list):
-                    hobbies = "\n".join(hobbies)
-                hobbies = remove_bullets(hobbies)
-                row["hobbies"] = hobbies
-                row["hobbies"] = hobbies
+                    points = [str(x) for x in hobbies]
+                else:
+                    points = split_bullet_points(hobbies)
+                points = capitalise_first_word(points)
+                row["hobbies"] = json.dumps(points, ensure_ascii=False)
+
                 row["linkedin_link"] = entry.get("linkedin_link") or entry.get("linkedin_url", "")
                 row["instagram_link"] = entry.get("instagram_link") or entry.get("instagram_url", "")
                 row["github_link"] = entry.get("github_url", "")
                 row["updated_at"] = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
 
-                
                 filtered_row = {k: row.get(k, "") for k in PROFILE_COLUMNS}
                 rows.append(filtered_row)
 
-    # All writing happens inside the with-block
+    # Export to CSV
     with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=PROFILE_COLUMNS)
         writer.writeheader()
