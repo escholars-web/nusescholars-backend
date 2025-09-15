@@ -8,16 +8,15 @@ from app.database.supabase_client import supabase
 import asyncio
 import re
 
-import re
-
 # Comprehensive mapping for column names to snake_case, handling different versions of forms
 COLUMN_NAME_MAP = {
     # Names/IDs
     "Name": "full_name",
     "Full Name (as per NRIC)": "full_name",
     
-    # Course/Programme
-    "B.Eng. Major": "bachelor_course",
+    # # Course/Programme
+    # "B.Eng. Major": "bachelor_course",
+    # "Major": "bachelor_course",
 
     # Masters (if any)
     "Major (in full)": "masters_course",
@@ -93,9 +92,33 @@ def split_bullet_points(text: str) -> List[str]:
     
     return cleaned_points
 
+def clean_bachelor_course(course: str) -> str:
+    """
+    Removes faculty prefix (e.g., 'MPE - ') and trailing semicolons from the bachelor_course field.
+    """
+    if not isinstance(course, str):
+        return course
+    # Remove leading 'XXX - ' (any uppercase letters/spaces) and trailing semicolons/spaces
+    course = re.sub(r'^[A-Z\s]+-\s*', '', course)
+    course = course.strip().rstrip(';')
+    if course == "Multidisciplinary Programme (Computer Engineering)":
+        course = "Computer Engineering"
+    return course
+
+def is_non_empty(val):
+    return isinstance(val, str) and val.strip() != ""
+
 def translate_row_keys(row: Dict[str, Any]) -> Dict[str, Any]:
     """Translate the keys of a row using COLUMN_NAME_MAP."""
     translated = {COLUMN_NAME_MAP.get(k, k): v for k, v in row.items()}
+
+    bachelor_course = None
+    if is_non_empty(row.get("B.Eng. Major", "")):
+        bachelor_course = row["B.Eng. Major"]
+    elif is_non_empty(row.get("Major", "")):
+        bachelor_course = row["Major"]
+    if bachelor_course is not None:
+        translated["bachelor_course"] = bachelor_course
     
     # Process intake_batch
     if "intake_batch" in translated:
@@ -105,7 +128,7 @@ def translate_row_keys(row: Dict[str, Any]) -> Dict[str, Any]:
             match = re.search(r'AY\d{2}/\d{2}', batch)
             if match:
                 translated["intake_batch"] = match.group(0)
-            
+
     return translated
 
 def detect_and_fix_issues(profile_data: Dict[str, Any]) -> tuple[List[str], Dict[str, Any]]:
@@ -113,18 +136,20 @@ def detect_and_fix_issues(profile_data: Dict[str, Any]) -> tuple[List[str], Dict
     issues = []
     fixed_data = profile_data.copy()
 
-    # Notable Achievements: check format and standardize
+    # Notable Achievements
     achievements = fixed_data.get("notable_achievements", "")
     if achievements:
         points = split_bullet_points(achievements)
+        points = capitalise_first_word(points)  
         if not points:
             issues.append("Notable achievements format is invalid")
         fixed_data["notable_achievements"] = points
 
-    # Hobbies: check format and standardize
+    # Hobbies
     hobbies = fixed_data.get("hobbies", "")
     if hobbies:
         points = split_bullet_points(hobbies)
+        points = capitalise_first_word(points) 
         if not points:
             issues.append("Hobbies format is invalid")
         fixed_data["hobbies"] = points
@@ -158,10 +183,21 @@ def clean_text(text):
     cleaned_text = '\n'.join(cleaned_lines).strip()
     return cleaned_text if cleaned_text else None
 
+def capitalise_first_word(points: list[str]) -> list[str]:
+    """
+    Capitalises the first word of each bullet point.
+    """
+    def cap_first(s):
+        s = s.strip()
+        return s[:1].upper() + s[1:] if s else s
+    return [cap_first(point) for point in points]
+
 def clean_row_fields(row: Dict[str, Any]) -> Dict[str, Any]:
     for k, v in row.items():
         if isinstance(v, str):
             row[k] = clean_text(v)
+            if k == "bachelor_course":
+                row[k] = clean_bachelor_course(row[k])
         elif isinstance(v, list):
             row[k] = [clean_text(x) if isinstance(x, str) else x for x in v]
         elif pd.isna(v):
