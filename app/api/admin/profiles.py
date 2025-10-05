@@ -24,7 +24,6 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
     upload_id = str(uuid.uuid4())
     submitted_at = datetime.utcnow()
 
-    # Pass the filename to processing function
     background_tasks.add_task(process_profiles_file, file_bytes, file.filename, upload_id)
 
     return UploadCSVResponse(uploadId=upload_id, status="processing", submittedAt=submitted_at)

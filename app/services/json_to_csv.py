@@ -1,3 +1,5 @@
+# Convert existing json to csv and populate supabase table
+
 import json
 import csv
 import re
@@ -10,9 +12,10 @@ PROFILE_COLUMNS = [
     "full_name", "bachelor_course", "masters_course", "ddp_or_minor",
     "intake_batch", "overseas_experience", "self_writeup", "picture_url",
     "notable_achievements", "hobbies", "linkedin_link",
-    "instagram_link", "github_link", "updated_at"
+    "instagram_link", "github_link", "updated_at", "last_modified"
 ]
 PROFILES_TABLE = "profiles"
+LAST_MODIFIED_DATE = '2024-09-30'
 
 def clear_profiles_table():
     # Delete all rows in the profiles table
@@ -106,7 +109,8 @@ def main():
                 row["instagram_link"] = entry.get("instagram_link") or entry.get("instagram_url", "")
                 row["github_link"] = entry.get("github_url", "")
                 row["updated_at"] = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
-
+                row["last_modified"] = LAST_MODIFIED_DATE
+                
                 filtered_row = {k: row.get(k, "") for k in PROFILE_COLUMNS}
                 rows.append(filtered_row)
 
