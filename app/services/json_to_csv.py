@@ -1,4 +1,6 @@
-# Convert existing json to csv and populate supabase table
+# Convert existing json to csv and populate supabase table 'profiles'
+# Intended to be the first init for subsequent updates via admin panel
+# Run python -m app.services.json_to_csv from root directory
 
 import json
 import csv
@@ -110,7 +112,7 @@ def main():
                 row["github_link"] = entry.get("github_url", "")
                 row["updated_at"] = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
                 row["last_modified"] = LAST_MODIFIED_DATE
-                
+
                 filtered_row = {k: row.get(k, "") for k in PROFILE_COLUMNS}
                 rows.append(filtered_row)
 

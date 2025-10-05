@@ -63,7 +63,7 @@ PROFILES_COLUMNS = set([
     "full_name", "bachelor_course", "masters_course", "ddp_or_minor",
     "intake_batch", "overseas_experience", "self_writeup", "picture_url",
     "notable_achievements", "hobbies", "linkedin_link",
-    "instagram_link", "github_link", "updated_at"
+    "instagram_link", "github_link", "last_modified"
 ])
 STAGING_COLUMNS = PROFILES_COLUMNS | {"issues"} # issues is an extra column
 
@@ -260,8 +260,9 @@ async def process_profiles_file(file_bytes: bytes, filename: str, upload_id: str
 
     for full_name, mapped_row in deduped.items():
         mapped_row["full_name"] = full_name
-        mapped_row["updated_at"] = datetime.utcnow().isoformat()
+        mapped_row["last_modified"] = datetime.utcnow().isoformat()
         issues, fixed_row = detect_and_fix_issues(mapped_row)
+        
         if isinstance(fixed_row.get("notable_achievements"), list):
             fixed_row["notable_achievements"] = fixed_row["notable_achievements"]
         if isinstance(fixed_row.get("hobbies"), list):
