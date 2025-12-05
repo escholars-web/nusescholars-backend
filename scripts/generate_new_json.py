@@ -95,7 +95,7 @@ def extract_masters(row):
     return None
 
 def get_name(row):
-    return clean(row.get("Name")) or clean(row.get("Full Name (as per NRIC)"))
+    return clean(row.get("Full Name (as per NRIC)"))
 
 # ---------------- main script ---------------- #
 
@@ -125,10 +125,14 @@ def main():
         writeup = clean(row.get("Please provide a short write-up of yourself."))
         if REMOVE_BLANK_WRITEUPS and not writeup:
             removed_profiles.append((name, admit_display))
-            continue  # skip adding this profile
+            continue
         elif not writeup:
-            # keep the profile, but set writeup to None
             writeup = None
+
+        academic_career = clean(row.get("Academic Career"))
+        bachelors = extract_bachelors(row)
+        if academic_career == "E-Scholars Graduate":
+            bachelors = None  # force bachelors to null for graduate profiles
 
         bucket = derive_bucket(row)
         slug = slugify(name)
@@ -136,8 +140,8 @@ def main():
         profile = {
             "name": name,
             "admit_year": admit_display,
-            "academic_career": clean(row.get("Academic Career")),
-            "bachelors": extract_bachelors(row),
+            "academic_career": academic_career,
+            "bachelors": bachelors,
             "masters": extract_masters(row),
             "writeup": writeup,
             "picture_url": clean(row.get("Upload a picture of yourself.")),
@@ -151,7 +155,6 @@ def main():
 
         new_db.setdefault(ay_key, {}).setdefault(bucket, {})[slug] = profile
 
-    # Save JSON
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
         json.dump(new_db, f, ensure_ascii=False, indent=4)
 
