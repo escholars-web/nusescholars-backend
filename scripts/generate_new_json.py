@@ -76,7 +76,9 @@ def extract_bachelors(row):
             return cleaned
     return clean(row.get("Major (in full)"))
 
-def derive_bucket(row):
+def derive_bucket(row, academic_career):
+    if academic_career == "E-Scholars Graduate":
+        return "masters"
     raw = raw_bachelors(row)
     if raw:
         match = re.match(r'^([A-Z]{2,4})', raw)
@@ -132,9 +134,9 @@ def main():
         academic_career = clean(row.get("Academic Career"))
         bachelors = extract_bachelors(row)
         if academic_career == "E-Scholars Graduate":
-            bachelors = None  # force bachelors to null for graduate profiles
+            bachelors = None
 
-        bucket = derive_bucket(row)
+        bucket = derive_bucket(row, academic_career)
         slug = slugify(name)
 
         profile = {
